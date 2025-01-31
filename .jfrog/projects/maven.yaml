@@ -1,0 +1,7 @@
+version: 1
+type: maven
+resolver:
+    serverId: dhanush-saas
+    snapshotRepo: bmw-test-01-maven-remote
+    releaseRepo: bmw-test-01-maven-remote
+useWrapper: true
