@@ -32,9 +32,6 @@ jobs:
                   --repo-resolve-snapshots bmw-test-01-libs-snapshot \
                   --repo-deploy-releases bmw-test-01-libs-release \
                   --repo-deploy-snapshots bmw-test-01-libs-snapshot
-                  
-      - name: Jfrog Curation-Audit
-        run: jf audit
         
       - name: Jfrog Curation-Audit
         run: jf ca
