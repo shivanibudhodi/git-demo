@@ -32,12 +32,12 @@ jobs:
                   --repo-resolve-snapshots bmw-test-01-maven-remote \
                   --repo-deploy-releases bmw-test-01-libs-release-local \
                   --repo-deploy-snapshots bmw-test-01-libs-release-local
+                  
+      - name: JFrog Curation Audit Command
+        run: jf ca
         
       - name: Build and Install Maven Project
         run: jf mvn clean install -DskipTests --build-name="BMW-Training-mvn-publish" --build-number=${{ github.run_number }}
-
-      - name: JFrog Curation Audit Command
-        run: jf ca
 
       - name: Collect Env
         run: jf rt bce BMW-Training-mvn-publish ${{ github.run_number }}
