@@ -35,6 +35,9 @@ jobs:
                   
       - name: JFrog Curation Audit Command
         run: jf ca
+
+      - name: JFrog Xray Audit command
+        run: jf audit
         
       - name: Build and Install Maven Project
         run: jf mvn clean install -DskipTests --build-name="BMW-Training-mvn-publish" --build-number=${{ github.run_number }}
