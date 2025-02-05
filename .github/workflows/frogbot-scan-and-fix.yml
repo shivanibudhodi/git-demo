@@ -1,4 +1,15 @@
-name: "Frogbot Scan Repository"
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+# Frogbot Scan and Fix does the following:
+# Automatically creates pull requests with fixes for vulnerable project dependencies.
+# Uses JFrog Xray to scan the project.
+# Read more about Frogbot here - https://github.com/jfrog/frogbot#frogbot
+
+# Some projects require creating a frogbot-config.yml file. Read more about it here - https://github.com/jfrog/frogbot/blob/master/docs/frogbot-config.md
+
+name: "Frogbot Scan and Fix"
 on:
   push:
     branches: [ "main" ]
@@ -6,21 +17,34 @@ permissions:
   contents: write
   pull-requests: write
   security-events: write
-  # [Mandatory If using OIDC authentication protocol instead of JF_ACCESS_TOKEN]
-  # id-token: write
+  id-token: write
 jobs:
-  scan-repository:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # The repository scanning will be triggered periodically on the following branches.
-        branch: ["main"]
+  create-fix-repo-push:
+    runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+
+      #  IMPORTANT:
+      #  1. See the following link for information about the tools that need to be installed for Frogbot to work - https://github.com/jfrog/frogbot/tree/master/docs/templates/github-actions/scan-and-fix
+      #  2. Some projects require creating a frogbot-config.yml file. Read more about it here - https://github.com/jfrog/frogbot/blob/master/docs/frogbot-config.md
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pipenv
       - uses: jfrog/frogbot@v2
         env:
+          # [Mandatory if the two conditions below are met]
+          # 1. The project uses npm, yarn 2, NuGet or .NET to download its dependencies
+          # 2. The `installCommand` variable isn't set in your frogbot-config.yml file.
+          #
+          # The command that installs the project dependencies (e.g "npm i", "nuget restore" or "dotnet restore")
+          # JF_INSTALL_DEPS_CMD: ""
+
           # [Mandatory]
           # JFrog platform URL
           JF_URL: https://dhanushvm07.jfrog.io/
+          JF_GIT_AGGREGATE_FIXES: "TRUE"
 
           # [Mandatory if JF_USER and JF_PASSWORD are not provided]
           # JFrog access token with 'read' permissions on Xray service
@@ -35,113 +59,18 @@ jobs:
           # JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
 
           # [Mandatory]
-          # The GitHub token is automatically generated for the job
-          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          # [Mandatory]
-          # The name of the branch on which Frogbot will perform the scan
-          JF_GIT_BASE_BRANCH: ${{ matrix.branch }}
-
-          # [Optional, default: https://api.github.com]
-          # API endpoint to GitHub
-          # JF_GIT_API_ENDPOINT: https://github.example.com
+          # The GitHub token automatically generated for the job
+          # JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
           # [Optional]
-          # By default, the Frogbot workflows download the Frogbot executable as well as other tools
-          # needed from https://releases.jfrog.io
-          # If the machine that runs Frogbot has no access to the internet, follow these steps to allow the
-          # executable to be downloaded from an Artifactory instance, which the machine has access to:
-          #
-          # 1. Login to the Artifactory UI, with a user who has admin credentials.
-          # 2. Create a Remote Repository with the following properties set.
-          #    Under the 'Basic' tab:
-          #       Package Type: Generic
-          #       URL: https://releases.jfrog.io
-          #    Under the 'Advanced' tab:
-          #       Uncheck the 'Store Artifacts Locally' option
-          # 3. Set the value of the 'JF_RELEASES_REPO' variable with the Repository Key you created.
+          # If the machine that runs Frogbot has no access to the internat, set the name of a remote repository
+          # in Artifactory, which proxies https://releases.jfrog.io/artifactory
+          # The 'frogbot' executable and other tools it needs will be downloaded through this repository.
           # JF_RELEASES_REPO: ""
-
-          ##########################################################################
-          ##   If your project uses a 'frogbot-config.yml' file, you can define   ##
-          ##   the following variables inside the file, instead of here.          ##
-          ##########################################################################
-
-          # [Optional, default: "."]
-          # Relative path to the root of the project in the Git repository. If left empty (without providing "." yourself as default), a recursive scan is triggered from the root directory of the project.
-          # JF_WORKING_DIR: path/to/project/dir
-
-          # [Default: "*git*;*node_modules*;*target*;*venv*;*test*"]
-          # List of exclusion patterns (utilizing wildcards) for excluding paths in the source code of the Git repository during SCA scans.
-          # JF_PATH_EXCLUSIONS: "*git*;*node_modules*;*target*;*venv*;*test*"
-
-          # [Optional]
-          # Xray Watches. Learn more about them here: https://www.jfrog.com/confluence/display/JFROG/Configuring+Xray+Watches
-          # JF_WATCHES: <watch-1>,<watch-2>...<watch-n>
-
-          # [Optional]
-          # JFrog project. Learn more about it here: https://www.jfrog.com/confluence/display/JFROG/Projects
-          # JF_PROJECT: <project-key>
-
-          # [Optional, default: "TRUE"]
-          # Fails the Frogbot task if any security issue is found.
-          # JF_FAIL: "FALSE"
 
           # [Optional]
           # Frogbot will download the project dependencies, if they're not cached locally. To download the
-          # dependencies from a virtual repository in Artifactory, set the name of the repository. There's no
+          # dependencies from a virtual repository in Artifactory, set the name of of the repository. There's no
           # need to set this value, if it is set in the frogbot-config.yml file.
           # JF_DEPS_REPO: ""
-
-          # [Optional]
-          # Template for the branch name generated by Frogbot when creating pull requests with fixes.
-          # The template must include {BRANCH_NAME_HASH}, to ensure that the generated branch name is unique.
-          # The template can optionally include the {IMPACTED_PACKAGE} and {FIX_VERSION} variables.
-          # JF_BRANCH_NAME_TEMPLATE: "frogbot-{IMPACTED_PACKAGE}-{BRANCH_NAME_HASH}"
-
-          # [Optional]
-          # Template for the commit message generated by Frogbot when creating pull requests with fixes
-          # The template can optionally include the {IMPACTED_PACKAGE} and {FIX_VERSION} variables.
-          # JF_COMMIT_MESSAGE_TEMPLATE: "Upgrade {IMPACTED_PACKAGE} to {FIX_VERSION}"
-
-          # [Optional]
-          # Template for the pull request title generated by Frogbot when creating pull requests with fixes.
-          # The template can optionally include the {IMPACTED_PACKAGE} and {FIX_VERSION} variables.
-          # JF_PULL_REQUEST_TITLE_TEMPLATE: "[🐸 Frogbot] Upgrade {IMPACTED_PACKAGE} to {FIX_VERSION}"
-
-          # [Optional, Default: "FALSE"]
-          # If TRUE, Frogbot creates a single pull request with all the fixes.
-          # If FALSE, Frogbot creates a separate pull request for each fix.
-          # JF_GIT_AGGREGATE_FIXES: "FALSE"
-
-          # [Optional, Default: "FALSE"]
-          # Handle vulnerabilities with fix versions only
-          # JF_FIXABLE_ONLY: "TRUE"
-
-          # [Optional]
-          # Set the minimum severity for vulnerabilities that should be fixed and commented on in pull requests
-          # The following values are accepted: Low, Medium, High or Critical
-          # JF_MIN_SEVERITY: ""
-
-          # [Optional, Default: eco-system+frogbot@jfrog.com]
-          # Set the email of the commit author
-          # JF_GIT_EMAIL_AUTHOR: ""
-
-          # [Optional]
-          # Set the list of allowed licenses
-          # The full list of licenses can be found in:
-          # https://github.com/jfrog/frogbot/blob/master/docs/licenses.md
-          # JF_ALLOWED_LICENSES: "MIT, Apache-2.0"
-
-          # [Optional]
-          # Avoid adding extra info to pull request comments. that isn't related to the scan findings.
-          # JF_AVOID_EXTRA_MESSAGES: "TRUE"
-
-          # [Optional]
-          # Add a title to pull request comments generated by Frogbot.
-          # JF_PR_COMMENT_TITLE: ""
-
-        # [Mandatory if using OIDC authentication protocol instead of JF_ACCESS_TOKEN]
-        # Insert to oidc-provider-name the 'Provider Name' defined in the OIDC integration configured in the JPD
-        # with:
-        #   oidc-provider-name: ""
+          JF_PROJECT: ${{ vars.JF_PROJECT }}
