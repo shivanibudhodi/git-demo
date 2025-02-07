@@ -20,7 +20,7 @@ jobs:
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
         env:
-          JF_URL: https://dhanushvm07.jfrog.io/
+          JF_URL: https://adoption.jfrog.io/
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
 
       - name: Run JFrog CLI Ping
@@ -31,25 +31,15 @@ jobs:
 
       - name: Configure Maven repositories in JFrog CLI
         run: |
-          jf mvnc --repo-resolve-releases bmw-test-01-maven-remote \
-                  --repo-resolve-snapshots bmw-test-01-maven-remote \
-                  --repo-deploy-releases bmw-test-01-libs-release-local \
-                  --repo-deploy-snapshots bmw-test-01-libs-release-local
+          jf mvnc --repo-resolve-releases srs-maven-remote \
+                  --repo-resolve-snapshots srs-maven-remote \
+                  --repo-deploy-releases alpha-mvn-blr-libs-release \
+                  --repo-deploy-snapshots team2-mvn-libs-snapshot
                   
       - name: JFrog Curation Audit Command
         run: jf ca
-
-      - name: JFrog Xray Audit command
-        run: jf audit
         
-      - name: Build and Install Maven Project
-        run: jf mvn clean install -DskipTests --build-name="BMW-Training-mvn-publish" --build-number=${{ github.run_number }}
-
-      - name: Collect Env
-        run: jf rt bce BMW-Training-mvn-publish ${{ github.run_number }}
-
-      - name: Collect VCS info
-        run: jf rt bag BMW-Training-mvn-publish ${{ github.run_number }}
+    
 
       - name: Publish build
         run: jf rt bp BMW-Training-mvn-publish ${{ github.run_number }}
