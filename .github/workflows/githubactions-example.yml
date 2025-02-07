@@ -25,6 +25,9 @@ jobs:
 
       - name: Run JFrog CLI Ping
         run: jf rt ping
+        
+      - name:
+        run: mvn -version
 
       - name: Configure Maven repositories in JFrog CLI
         run: |
